@@ -26,7 +26,7 @@ arg_enum! {
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
-    App::new("Ender")
+    let matches = App::new("Ender")
         .version("1.0.0-20120712.0")
         .author("John Lyon-Smith")
         .about("End of line normalizer.  Defaults to reporting types of endings.")
@@ -58,9 +58,14 @@ fn run() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
+    let line_info = read_eol_info(matches.value_of("input_file"))?;
+
+    println!("{:?}", line_info);
+
     Ok(())
 }
 
+#[derive(Debug)]
 struct LineInfo {
     cr: usize,
     lf: usize,
@@ -69,7 +74,7 @@ struct LineInfo {
     num_endings: usize,
 }
 
-fn readEolInfo(inputPath: Option<&Path>) -> Result<LineInfo, Box<dyn Error>> {
+fn read_eol_info(input_path: Option<&str>) -> Result<LineInfo, Box<dyn Error>> {
     let mut line_info = LineInfo {
         cr: 0,
         lf: 0,
@@ -77,10 +82,32 @@ fn readEolInfo(inputPath: Option<&Path>) -> Result<LineInfo, Box<dyn Error>> {
         num_endings: 0,
         num_lines: 0,
     };
-    let reader = File::open(Path::new(inputPath.unwrap()))?;
-    let decoder = UnsafeDecoder::new(reader.bytes());
+    let reader: Box<dyn Read> = Box::new(File::open(Path::new(input_path.unwrap()))?);
+    let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
 
-    for c in decoder {}
+    loop {
+        let c;
+        match decoder.next() {
+            Some(value) => c = value?,
+            None => break,
+        };
+        if c == '\r' {
+            if matches!(decoder.peek(), Some(Ok(c)) if *c == '\n') {
+                line_info.crlf += 1;
+                decoder.next();
+            } else {
+                line_info.cr += 1;
+            }
+
+            line_info.num_lines += 1;
+        } else if c == '\n' {
+            line_info.lf += 1;
+            line_info.num_lines += 1;
+        }
+    }
+
+    line_info.num_endings =
+        (line_info.cr > 0) as usize + (line_info.lf > 0) as usize + (line_info.crlf > 0) as usize;
 
     Ok(line_info)
 }
