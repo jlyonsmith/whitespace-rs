@@ -1,8 +1,8 @@
 use clap::{arg_enum, value_t, App, Arg};
 use std::error::Error;
 use std::fs::File;
-use std::io::BufWriter;
-use std::io::{Read, Write};
+use std::io::{BufReader, BufWriter};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use utf8_decode::UnsafeDecoder;
 
@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 arg_enum! {
-    #[derive(PartialEq, Debug)]
+    #[derive(PartialEq, Debug, Clone, Copy)]
     pub enum EndOfLine {
         Cr,
         Lf,
@@ -60,7 +60,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         .get_matches();
 
     let input_file = matches.value_of("input_file").unwrap();
-    let line_info = read_eol_info(input_file)?;
+    let mut reader = BufReader::new(File::open(Path::new(input_file))?);
+    let line_info = read_eol_info(&mut reader)?;
 
     print!(
         "'{}', {}, {} lines",
@@ -94,17 +95,23 @@ fn run() -> Result<(), Box<dyn Error>> {
             _ => (),
         };
 
-        let output_file = matches.value_of("output_file");
+        reader.seek(SeekFrom::Start(0))?;
 
-        let num_lines = write_new_file(input_file, output_file, new_eol)?;
+        let output_file = matches.value_of("output_file");
+        let mut writer: Box<dyn Write> = match output_file {
+            Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
+            None => Box::new(std::io::stdout()),
+        };
+        let num_lines = write_new_file(&mut reader, &mut writer, new_eol)?;
 
         println!(
-            " -> '{}', {} lines",
+            " -> '{}', {}, {} lines",
             if let Some(file) = output_file {
                 file
             } else {
                 "STDOUT"
             },
+            new_eol.to_string().to_lowercase(),
             num_lines
         )
     }
@@ -112,7 +119,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct LineInfo {
     cr: usize,
     lf: usize,
@@ -121,15 +128,17 @@ struct LineInfo {
     num_endings: usize,
 }
 
-fn read_eol_info(input_path: &str) -> Result<LineInfo, Box<dyn Error>> {
+impl Eq for LineInfo {}
+
+fn read_eol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> {
     let mut line_info = LineInfo {
         cr: 0,
         lf: 0,
         crlf: 0,
         num_endings: 0,
-        num_lines: 0,
+        num_lines: 1,
     };
-    let mut decoder = UnsafeDecoder::new(File::open(Path::new(input_path))?.bytes()).peekable();
+    let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
 
     loop {
         let c;
@@ -159,23 +168,18 @@ fn read_eol_info(input_path: &str) -> Result<LineInfo, Box<dyn Error>> {
 }
 
 fn write_new_file(
-    input_path: &str,
-    output_path: Option<&str>,
+    reader: &mut dyn Read,
+    writer: &mut dyn Write,
     new_eol: EndOfLine,
 ) -> Result<usize, Box<dyn Error>> {
-    let mut num_lines = 0;
+    let mut num_lines = 1;
     let newline_chars = match new_eol {
         EndOfLine::Cr => "\r".as_bytes(),
         EndOfLine::Lf => "\n".as_bytes(),
         EndOfLine::CrLf => "\r\n".as_bytes(),
         _ => panic!(),
     };
-    let file = File::open(Path::new(input_path))?;
-    let mut decoder = UnsafeDecoder::new(file.bytes()).peekable();
-    let mut writer: Box<dyn Write> = match output_path {
-        Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
-        None => Box::new(std::io::stdout()),
-    };
+    let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
     let mut buf = [0u8; 4];
 
     loop {
@@ -203,4 +207,82 @@ fn write_new_file(
     writer.flush()?;
 
     Ok(num_lines)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_eol_info_lf() {
+        let line_info = read_eol_info(&mut "\n".as_bytes()).unwrap();
+
+        assert_eq!(
+            line_info,
+            LineInfo {
+                cr: 0,
+                lf: 1,
+                crlf: 0,
+                num_lines: 2,
+                num_endings: 1
+            }
+        );
+    }
+
+    #[test]
+    fn test_read_eol_info_cr() {
+        let line_info = read_eol_info(&mut "\r".as_bytes()).unwrap();
+
+        assert_eq!(
+            line_info,
+            LineInfo {
+                cr: 1,
+                lf: 0,
+                crlf: 0,
+                num_lines: 2,
+                num_endings: 1
+            }
+        );
+    }
+
+    #[test]
+    fn test_read_eol_info_crlf() {
+        let line_info = read_eol_info(&mut "\r\n".as_bytes()).unwrap();
+
+        assert_eq!(
+            line_info,
+            LineInfo {
+                cr: 0,
+                lf: 0,
+                crlf: 1,
+                num_lines: 2,
+                num_endings: 1
+            }
+        );
+    }
+
+    #[test]
+    fn test_read_eol_info_mixed1() {
+        let line_info = read_eol_info(&mut "\n\r\n\r".as_bytes()).unwrap();
+
+        assert_eq!(
+            line_info,
+            LineInfo {
+                cr: 1,
+                lf: 1,
+                crlf: 1,
+                num_lines: 4,
+                num_endings: 3
+            }
+        );
+    }
+
+    #[test]
+    fn test_write_new_file() {
+        let mut input = "\r\n".as_bytes();
+        let mut output = Vec::new();
+        let num_lines = write_new_file(&mut input, &mut output, EndOfLine::Lf).unwrap();
+
+        assert_eq!(num_lines, 2);
+    }
 }
