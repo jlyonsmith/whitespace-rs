@@ -1,7 +1,8 @@
-use clap::{arg_enum, App, Arg};
+use clap::{arg_enum, value_t, App, Arg};
 use std::error::Error;
 use std::fs::File;
-use std::io::Read;
+use std::io::BufWriter;
+use std::io::{Read, Write};
 use std::path::Path;
 use utf8_decode::UnsafeDecoder;
 
@@ -32,10 +33,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         .about("End of line normalizer.  Defaults to reporting types of endings.")
         .arg(
             Arg::with_name("input_file")
-                .help("Input file in UTF-8 format. Uses STDIN if not specified.")
+                .help("Input file in UTF-8 format.")
                 .value_name("FILE")
                 .index(1)
-                .required(false),
+                .required(true),
         )
         .arg(
             Arg::with_name("output_file")
@@ -58,9 +59,55 @@ fn run() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    let line_info = read_eol_info(matches.value_of("input_file"))?;
+    let input_file = matches.value_of("input_file").unwrap();
+    let line_info = read_eol_info(input_file)?;
 
-    println!("{:?}", line_info);
+    print!(
+        "'{}', {}, {} lines",
+        input_file,
+        if line_info.num_endings > 1 {
+            "mixed"
+        } else if line_info.cr > 0 {
+            "cr"
+        } else if line_info.lf > 0 {
+            "lf"
+        } else {
+            "crlf"
+        },
+        line_info.num_lines
+    );
+
+    if let Ok(mut new_eol) = value_t!(matches, "new_eol", EndOfLine) {
+        match new_eol {
+            EndOfLine::Auto => {
+                let mut n = line_info.lf;
+
+                if line_info.crlf > n {
+                    n = line_info.crlf;
+                    new_eol = EndOfLine::CrLf;
+                }
+
+                if line_info.cr > n {
+                    new_eol = EndOfLine::Cr;
+                }
+            }
+            _ => (),
+        };
+
+        let output_file = matches.value_of("output_file");
+
+        let num_lines = write_new_file(input_file, output_file, new_eol)?;
+
+        println!(
+            " -> '{}', {} lines",
+            if let Some(file) = output_file {
+                file
+            } else {
+                "STDOUT"
+            },
+            num_lines
+        )
+    }
 
     Ok(())
 }
@@ -74,7 +121,7 @@ struct LineInfo {
     num_endings: usize,
 }
 
-fn read_eol_info(input_path: Option<&str>) -> Result<LineInfo, Box<dyn Error>> {
+fn read_eol_info(input_path: &str) -> Result<LineInfo, Box<dyn Error>> {
     let mut line_info = LineInfo {
         cr: 0,
         lf: 0,
@@ -82,8 +129,7 @@ fn read_eol_info(input_path: Option<&str>) -> Result<LineInfo, Box<dyn Error>> {
         num_endings: 0,
         num_lines: 0,
     };
-    let reader: Box<dyn Read> = Box::new(File::open(Path::new(input_path.unwrap()))?);
-    let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
+    let mut decoder = UnsafeDecoder::new(File::open(Path::new(input_path))?.bytes()).peekable();
 
     loop {
         let c;
@@ -110,4 +156,51 @@ fn read_eol_info(input_path: Option<&str>) -> Result<LineInfo, Box<dyn Error>> {
         (line_info.cr > 0) as usize + (line_info.lf > 0) as usize + (line_info.crlf > 0) as usize;
 
     Ok(line_info)
+}
+
+fn write_new_file(
+    input_path: &str,
+    output_path: Option<&str>,
+    new_eol: EndOfLine,
+) -> Result<usize, Box<dyn Error>> {
+    let mut num_lines = 0;
+    let newline_chars = match new_eol {
+        EndOfLine::Cr => "\r".as_bytes(),
+        EndOfLine::Lf => "\n".as_bytes(),
+        EndOfLine::CrLf => "\r\n".as_bytes(),
+        _ => panic!(),
+    };
+    let file = File::open(Path::new(input_path))?;
+    let mut decoder = UnsafeDecoder::new(file.bytes()).peekable();
+    let mut writer: Box<dyn Write> = match output_path {
+        Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
+        None => Box::new(std::io::stdout()),
+    };
+    let mut buf = [0u8; 4];
+
+    loop {
+        let c;
+
+        match decoder.next() {
+            Some(value) => c = value?,
+            None => break,
+        };
+        if c == '\r' {
+            if matches!(decoder.peek(), Some(Ok(c)) if *c == '\n') {
+                decoder.next();
+            }
+
+            num_lines += 1;
+            writer.write(newline_chars)?;
+        } else if c == '\n' {
+            num_lines += 1;
+            writer.write(newline_chars)?;
+        } else {
+            c.encode_utf8(&mut buf);
+            writer.write(&buf)?;
+        }
+    }
+    writer.flush()?;
+
+    Ok(num_lines)
 }
