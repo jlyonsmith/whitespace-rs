@@ -200,8 +200,7 @@ fn write_new_file(
             num_lines += 1;
             writer.write(newline_chars)?;
         } else {
-            c.encode_utf8(&mut buf);
-            writer.write(&buf)?;
+            writer.write(c.encode_utf8(&mut buf).as_bytes())?;
         }
     }
     writer.flush()?;
@@ -279,10 +278,19 @@ mod tests {
 
     #[test]
     fn test_write_new_file() {
-        let mut input = "\r\n".as_bytes();
+        let mut input = "abc\n\r\r\n".as_bytes();
         let mut output = Vec::new();
-        let num_lines = write_new_file(&mut input, &mut output, EndOfLine::Lf).unwrap();
+        let num_lines = write_new_file(&mut input, &mut output, EndOfLine::CrLf).unwrap();
 
-        assert_eq!(num_lines, 2);
+        assert_eq!(num_lines, 4);
+        assert_eq!(String::from_utf8(output).unwrap(), "abc\r\n\r\n\r\n")
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_write_new_file_bad_arg() {
+        let mut input = "".as_bytes();
+        let mut output = Vec::new();
+        write_new_file(&mut input, &mut output, EndOfLine::Auto).unwrap();
     }
 }
