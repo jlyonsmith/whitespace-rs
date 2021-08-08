@@ -7,26 +7,6 @@ use std::path::Path;
 use utf8_decode::UnsafeDecoder;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let result = run();
-
-    if let Err(ref err) = result {
-        eprintln!("error: {}", err);
-    }
-
-    result
-}
-
-arg_enum! {
-    #[derive(PartialEq, Debug, Clone, Copy)]
-    pub enum EndOfLine {
-        Cr,
-        Lf,
-        CrLf,
-        Auto,
-    }
-}
-
-fn run() -> Result<(), Box<dyn Error>> {
     let matches = App::new("Ender")
         .version("1.0.0-20120712.0")
         .author("John Lyon-Smith")
@@ -59,7 +39,34 @@ fn run() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    let input_file = matches.value_of("input_file").unwrap();
+    let result = run(
+        matches.value_of("input_file").unwrap(),
+        matches.value_of("output_file"),
+        value_t!(matches, "new_eol", EndOfLine).ok(),
+    );
+
+    if let Err(ref err) = result {
+        eprintln!("error: {}", err);
+    }
+
+    result
+}
+
+arg_enum! {
+    #[derive(PartialEq, Debug, Clone, Copy)]
+    pub enum EndOfLine {
+        Cr,
+        Lf,
+        CrLf,
+        Auto,
+    }
+}
+
+fn run(
+    input_file: &str,
+    output_file: Option<&str>,
+    new_eol: Option<EndOfLine>,
+) -> Result<(), Box<dyn Error>> {
     let mut reader = BufReader::new(File::open(Path::new(input_file))?);
     let line_info = read_eol_info(&mut reader)?;
 
@@ -78,7 +85,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         line_info.num_lines
     );
 
-    if let Ok(mut new_eol) = value_t!(matches, "new_eol", EndOfLine) {
+    if let Some(mut new_eol) = new_eol {
         match new_eol {
             EndOfLine::Auto => {
                 let mut n = line_info.lf;
@@ -97,7 +104,6 @@ fn run() -> Result<(), Box<dyn Error>> {
 
         reader.seek(SeekFrom::Start(0))?;
 
-        let output_file = matches.value_of("output_file");
         let mut writer: Box<dyn Write> = match output_file {
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
