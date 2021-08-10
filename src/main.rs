@@ -6,6 +6,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use utf8_decode::UnsafeDecoder;
 
+// {grcov-excl-start}
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("Ender")
         .version("1.0.0-20120712.0")
@@ -61,6 +62,7 @@ arg_enum! {
         Auto,
     }
 }
+// {grcov-excl-end}
 
 fn run(
     input_file: &str,
