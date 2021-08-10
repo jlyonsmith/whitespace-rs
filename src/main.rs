@@ -90,6 +90,8 @@ fn run(
             EndOfLine::Auto => {
                 let mut n = line_info.lf;
 
+                new_eol = EndOfLine::Lf;
+
                 if line_info.crlf > n {
                     n = line_info.crlf;
                     new_eol = EndOfLine::CrLf;

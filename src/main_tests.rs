@@ -1,5 +1,3 @@
-use tempfile::tempfile;
-
 mod tests {
   use crate::*;
 
@@ -87,7 +85,20 @@ mod tests {
 
   #[test]
   fn test_run() {
-    let file = tempfile();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let output_path = temp_dir.path().join("output_file.txt");
+    let input_path = temp_dir.path().join("input_file.txt");
+    let input_file = input_path.to_str().unwrap();
 
-    run(&mut input, &mut output, EndOfLine::Auto).unwrap();
-  }}
+    std::fs::write(input_file, "abc\n").unwrap();
+
+    run(
+      input_file,
+      Some(output_path.to_str().unwrap()),
+      Some(EndOfLine::Auto),
+    )
+    .unwrap();
+
+    temp_dir.close().unwrap();
+  }
+}
