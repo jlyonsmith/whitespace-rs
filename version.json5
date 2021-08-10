@@ -1,7 +1,7 @@
 {
   filenames: [
-    "package.json",
-    "src/main.rs",
+    "Cargo.toml",
+    "ender/src/main.rs",
     "scratch/version.tag.txt",
     "scratch/version.desc.txt",
   ],
