@@ -1,2 +1,2 @@
 [workspace]
-members = ["ender"]
+members = ["ender", "spacer"]
