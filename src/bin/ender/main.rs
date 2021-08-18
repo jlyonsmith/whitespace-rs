@@ -1,10 +1,10 @@
-use clap::{arg_enum, value_t, App, Arg};
+use clap::{value_t, App, Arg};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
-use utf8_decode::UnsafeDecoder;
+use whitespace_rs::ender::*;
 
 // {grcov-excl-start}
 fn main() -> Result<(), Box<dyn Error>> {
@@ -51,16 +51,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     result
-}
-
-arg_enum! {
-    #[derive(PartialEq, Debug, Clone, Copy)]
-    pub enum EndOfLine {
-        Cr,
-        Lf,
-        CrLf,
-        Auto,
-    }
 }
 // {grcov-excl-end}
 
@@ -127,95 +117,6 @@ fn run(
     }
 
     Ok(())
-}
-
-#[derive(Debug, PartialEq)]
-struct LineInfo {
-    cr: usize,
-    lf: usize,
-    crlf: usize,
-    num_lines: usize,
-    num_endings: usize,
-}
-
-impl Eq for LineInfo {}
-
-fn read_eol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> {
-    let mut line_info = LineInfo {
-        cr: 0,
-        lf: 0,
-        crlf: 0,
-        num_endings: 0,
-        num_lines: 1,
-    };
-    let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
-
-    loop {
-        let c;
-        match decoder.next() {
-            Some(value) => c = value?,
-            None => break,
-        };
-        if c == '\r' {
-            if matches!(decoder.peek(), Some(Ok(c)) if *c == '\n') {
-                line_info.crlf += 1;
-                decoder.next();
-            } else {
-                line_info.cr += 1;
-            }
-
-            line_info.num_lines += 1;
-        } else if c == '\n' {
-            line_info.lf += 1;
-            line_info.num_lines += 1;
-        }
-    }
-
-    line_info.num_endings =
-        (line_info.cr > 0) as usize + (line_info.lf > 0) as usize + (line_info.crlf > 0) as usize;
-
-    Ok(line_info)
-}
-
-fn write_new_file(
-    reader: &mut dyn Read,
-    writer: &mut dyn Write,
-    new_eol: EndOfLine,
-) -> Result<usize, Box<dyn Error>> {
-    let mut num_lines = 1;
-    let newline_chars = match new_eol {
-        EndOfLine::Cr => "\r".as_bytes(),
-        EndOfLine::Lf => "\n".as_bytes(),
-        EndOfLine::CrLf => "\r\n".as_bytes(),
-        _ => panic!(),
-    };
-    let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
-    let mut buf = [0u8; 4];
-
-    loop {
-        let c;
-
-        match decoder.next() {
-            Some(value) => c = value?,
-            None => break,
-        };
-        if c == '\r' {
-            if matches!(decoder.peek(), Some(Ok(c)) if *c == '\n') {
-                decoder.next();
-            }
-
-            num_lines += 1;
-            writer.write(newline_chars)?;
-        } else if c == '\n' {
-            num_lines += 1;
-            writer.write(newline_chars)?;
-        } else {
-            writer.write(c.encode_utf8(&mut buf).as_bytes())?;
-        }
-    }
-    writer.flush()?;
-
-    Ok(num_lines)
 }
 
 #[cfg(test)]
