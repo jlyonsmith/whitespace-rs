@@ -1,19 +1,19 @@
-# Whitespace Tools (Rust Edition)
+# Whitespace Tools
 
-These are a couple of command line tools for fixing whitespace issues in files:
+A Rust library and command line tools for fixing whitespace problems in text files.
+
+- Report on line endings and optionally standardize them to CR, LF or CRLF
+- Report on line beginnings and optionally standarize them to spaces or tabs.
+- Handles files that are a mixture of different endings or beginnings
+- Allows configuring the tab size on input and output
+
+The following command line tools are included in this crate:
 
 - `ender` reports and optionally normalizes or changes line endings in text files.
-- `spacer` reports on and optionally normalizes or changes beginning of line (before the first character) whitespace.
+- `spacer` reports on and optionally normalizes whitespace at the beginning of lines.
 
-## Installing the Rust Code Coverage Tools
+## License
 
-To install Rust's native LLVM based code coverage tools:
+Whitespace Tools is distributed under the terms of the MIT License.
 
-```zsh
-rustup install nightly
-rustup default nightly
-rustup component add llvm-tools-preview
-cargo install grcov
-```
-
-The run `./get-coverage.sh` to generate a `.profraw` file in the `/scratch` directory, and HTML coverage report. Open it with `open ./target/debug/coverage/*.html`.
+See LICENSE and COPYRIGHT for details.

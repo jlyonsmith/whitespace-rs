@@ -68,16 +68,8 @@ fn test_read_eol_info_mixed1() {
 fn test_write_new_file() {
   let mut input = "abc\n\r\r\n".as_bytes();
   let mut output = Vec::new();
-  let num_lines = write_new_file(&mut input, &mut output, EndOfLine::CrLf).unwrap();
+  let num_lines = write_new_eols(&mut input, &mut output, EndOfLine::CrLf).unwrap();
 
   assert_eq!(num_lines, 4);
   assert_eq!(String::from_utf8(output).unwrap(), "abc\r\n\r\n\r\n")
-}
-
-#[test]
-#[should_panic]
-fn test_write_new_file_bad_arg() {
-  let mut input = "".as_bytes();
-  let mut output = Vec::new();
-  write_new_file(&mut input, &mut output, EndOfLine::Auto).unwrap();
 }

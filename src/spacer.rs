@@ -1,3 +1,5 @@
+//! Report on or fix beginning of line spacing
+
 use clap::arg_enum;
 use std::error::Error;
 use std::io::{Read, Write};
@@ -5,6 +7,7 @@ use utf8_decode::UnsafeDecoder;
 
 arg_enum! {
   #[derive(PartialEq, Debug, Clone, Copy)]
+  /// Types of line beginnings
   pub enum BeginningOfLine {
       Tabs,
       Spaces,
@@ -13,13 +16,17 @@ arg_enum! {
 }
 
 #[derive(Debug, PartialEq)]
+/// Information about line beginnings in the file
 pub struct LineInfo {
+  /// Number of spaces in line beginnings
   pub spaces: usize,
+  /// Numbef of tabs in line beginnings
   pub tabs: usize,
 }
 
 impl Eq for LineInfo {}
 
+/// Read beginning of line information
 pub fn read_bol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> {
   let mut line_info = LineInfo { spaces: 0, tabs: 0 };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
@@ -48,7 +55,8 @@ pub fn read_bol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> 
   Ok(line_info)
 }
 
-pub fn write_new_file(
+/// Write input file out with new beginning-of-lines
+pub fn write_new_bols(
   reader: &mut dyn Read,
   writer: &mut dyn Write,
   new_bol: BeginningOfLine,
@@ -147,4 +155,4 @@ pub fn write_new_file(
 
 #[cfg(test)]
 #[path = "spacer_tests.rs"]
-mod spacer_tests;
+mod tests;

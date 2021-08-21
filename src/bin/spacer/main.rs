@@ -103,7 +103,7 @@ pub fn run(
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
         };
-        let line_info = write_new_file(&mut reader, &mut writer, new_bol, tab_size, round_down)?;
+        let line_info = write_new_bols(&mut reader, &mut writer, new_bol, tab_size, round_down)?;
 
         println!(
             " -> '{}', {}",
@@ -121,4 +121,4 @@ pub fn run(
 
 #[cfg(test)]
 #[path = "main_tests.rs"]
-mod main_tests;
+mod tests;

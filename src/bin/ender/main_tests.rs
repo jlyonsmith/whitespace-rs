@@ -12,7 +12,7 @@ fn test_run_auto() {
   run(
     input_file,
     Some(output_path.to_str().unwrap()),
-    Some(EndOfLine::Auto),
+    Some(EndOfLineArg::Auto),
   )
   .unwrap();
 
@@ -44,7 +44,7 @@ fn test_run_crlf() {
   run(
     input_file,
     Some(output_path.to_str().unwrap()),
-    Some(EndOfLine::Lf),
+    Some(EndOfLineArg::Lf),
   )
   .unwrap();
 
@@ -59,7 +59,7 @@ fn test_run_cr() {
 
   std::fs::write(input_file, "abc\r").unwrap();
 
-  run(input_file, None, Some(EndOfLine::CrLf)).unwrap();
+  run(input_file, None, Some(EndOfLineArg::CrLf)).unwrap();
 
   temp_dir.close().unwrap();
 }
@@ -72,7 +72,7 @@ fn test_run_lf() {
 
   std::fs::write(input_file, "abc\n").unwrap();
 
-  run(input_file, None, Some(EndOfLine::CrLf)).unwrap();
+  run(input_file, None, Some(EndOfLineArg::CrLf)).unwrap();
 
   temp_dir.close().unwrap();
 }

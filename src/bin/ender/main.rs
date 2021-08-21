@@ -1,4 +1,4 @@
-use clap::{value_t, App, Arg};
+use clap::{arg_enum, value_t, App, Arg};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -7,6 +7,17 @@ use std::path::Path;
 use whitespace_rs::ender::*;
 
 // {grcov-excl-start}
+arg_enum! {
+  #[derive(PartialEq, Debug, Clone, Copy)]
+  /// Types of line endings
+  pub enum EndOfLineArg {
+      Cr,
+      Lf,
+      CrLf,
+      Auto,
+  }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("Ender")
         .version("1.0.0-20120712.0")
@@ -34,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .long("new-eol")
                 .short("n")
                 .takes_value(true)
-                .possible_values(&EndOfLine::variants())
+                .possible_values(&EndOfLineArg::variants())
                 .case_insensitive(true)
                 .required(false),
         )
@@ -43,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let result = run(
         matches.value_of("input_file").unwrap(),
         matches.value_of("output_file"),
-        value_t!(matches, "new_eol", EndOfLine).ok(),
+        value_t!(matches, "new_eol", EndOfLineArg).ok(),
     );
 
     if let Err(ref err) = result {
@@ -57,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn run(
     input_file: &str,
     output_file: Option<&str>,
-    new_eol: Option<EndOfLine>,
+    eol_arg: Option<EndOfLineArg>,
 ) -> Result<(), Box<dyn Error>> {
     let mut reader = BufReader::new(File::open(Path::new(input_file))?);
     let line_info = read_eol_info(&mut reader)?;
@@ -77,23 +88,12 @@ fn run(
         line_info.num_lines
     );
 
-    if let Some(mut new_eol) = new_eol {
-        match new_eol {
-            EndOfLine::Auto => {
-                let mut n = line_info.lf;
-
-                new_eol = EndOfLine::Lf;
-
-                if line_info.crlf > n {
-                    n = line_info.crlf;
-                    new_eol = EndOfLine::CrLf;
-                }
-
-                if line_info.cr > n {
-                    new_eol = EndOfLine::Cr;
-                }
-            }
-            _ => (),
+    if let Some(eol_arg) = eol_arg {
+        let new_eol = match eol_arg {
+            EndOfLineArg::Auto => line_info.get_common_eol(),
+            EndOfLineArg::Lf => EndOfLine::Lf,
+            EndOfLineArg::Cr => EndOfLine::Cr,
+            EndOfLineArg::CrLf => EndOfLine::CrLf,
         };
 
         reader.seek(SeekFrom::Start(0))?;
@@ -102,7 +102,7 @@ fn run(
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
         };
-        let num_lines = write_new_file(&mut reader, &mut writer, new_eol)?;
+        let num_lines = write_new_eols(&mut reader, &mut writer, new_eol)?;
 
         println!(
             " -> '{}', {}, {} lines",
@@ -111,7 +111,7 @@ fn run(
             } else {
                 "STDOUT"
             },
-            new_eol.to_string().to_lowercase(),
+            eol_arg.to_string().to_lowercase(),
             num_lines
         )
     }
@@ -121,4 +121,4 @@ fn run(
 
 #[cfg(test)]
 #[path = "main_tests.rs"]
-mod main_tests;
+mod tests;

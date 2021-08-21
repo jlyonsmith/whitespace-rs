@@ -1,20 +1,18 @@
-use clap::arg_enum;
+//! Report on or fix line endings
+
 use std::error::Error;
 use std::io::{Read, Write};
 use utf8_decode::UnsafeDecoder;
 
-// {grcov-excl-start}
-arg_enum! {
-  #[derive(PartialEq, Debug, Clone, Copy)]
-  pub enum EndOfLine {
-      Cr,
-      Lf,
-      CrLf,
-      Auto,
-  }
+#[derive(PartialEq, Debug, Clone, Copy)]
+/// Types of line endings
+pub enum EndOfLine {
+  Cr,
+  Lf,
+  CrLf,
 }
-// {grcov-excl-end}
 
+/// File line information
 #[derive(Debug, PartialEq)]
 pub struct LineInfo {
   pub cr: usize,
@@ -26,6 +24,25 @@ pub struct LineInfo {
 
 impl Eq for LineInfo {}
 
+impl LineInfo {
+  pub fn get_common_eol(self: Self) -> EndOfLine {
+    let mut n = self.lf;
+    let mut eol = EndOfLine::Lf;
+
+    if self.crlf > n {
+      n = self.crlf;
+      eol = EndOfLine::CrLf;
+    }
+
+    if self.cr > n {
+      eol = EndOfLine::Cr;
+    }
+
+    eol
+  }
+}
+
+/// Read end-of-line information for a file
 pub fn read_eol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> {
   let mut line_info = LineInfo {
     cr: 0,
@@ -63,7 +80,8 @@ pub fn read_eol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> 
   Ok(line_info)
 }
 
-pub fn write_new_file(
+/// Write input file out with new end-of-lines
+pub fn write_new_eols(
   reader: &mut dyn Read,
   writer: &mut dyn Write,
   new_eol: EndOfLine,
@@ -73,7 +91,6 @@ pub fn write_new_file(
     EndOfLine::Cr => "\r".as_bytes(),
     EndOfLine::Lf => "\n".as_bytes(),
     EndOfLine::CrLf => "\r\n".as_bytes(),
-    _ => panic!(),
   };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut buf = [0u8; 4];
@@ -106,4 +123,4 @@ pub fn write_new_file(
 
 #[cfg(test)]
 #[path = "ender_tests.rs"]
-mod ender_tests;
+mod tests;
