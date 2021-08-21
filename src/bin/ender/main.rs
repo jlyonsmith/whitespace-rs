@@ -71,26 +71,26 @@ fn run(
     eol_arg: Option<EndOfLineArg>,
 ) -> Result<(), Box<dyn Error>> {
     let mut reader = BufReader::new(File::open(Path::new(input_file))?);
-    let line_info = read_eol_info(&mut reader)?;
+    let eol_info = read_eol_info(&mut reader)?;
 
     print!(
         "'{}', {}, {} lines",
         input_file,
-        if line_info.num_endings > 1 {
+        if eol_info.num_endings > 1 {
             "mixed"
-        } else if line_info.cr > 0 {
+        } else if eol_info.cr > 0 {
             "cr"
-        } else if line_info.lf > 0 {
+        } else if eol_info.lf > 0 {
             "lf"
         } else {
             "crlf"
         },
-        line_info.num_lines
+        eol_info.num_lines
     );
 
     if let Some(eol_arg) = eol_arg {
         let new_eol = match eol_arg {
-            EndOfLineArg::Auto => line_info.get_common_eol(),
+            EndOfLineArg::Auto => eol_info.get_common_eol(),
             EndOfLineArg::Lf => EndOfLine::Lf,
             EndOfLineArg::Cr => EndOfLine::Cr,
             EndOfLineArg::CrLf => EndOfLine::CrLf,

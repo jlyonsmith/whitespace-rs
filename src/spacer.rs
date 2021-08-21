@@ -1,34 +1,40 @@
 //! Report on or fix beginning of line spacing
 
-use clap::arg_enum;
 use std::error::Error;
 use std::io::{Read, Write};
 use utf8_decode::UnsafeDecoder;
 
-arg_enum! {
-  #[derive(PartialEq, Debug, Clone, Copy)]
-  /// Types of line beginnings
-  pub enum BeginningOfLine {
-      Tabs,
-      Spaces,
-      Auto,
-  }
+#[derive(Debug, PartialEq)]
+/// Types of line beginnings
+pub enum BeginningOfLine {
+  Tabs,
+  Spaces,
 }
 
 #[derive(Debug, PartialEq)]
 /// Information about line beginnings in the file
-pub struct LineInfo {
+pub struct BolInfo {
   /// Number of spaces in line beginnings
   pub spaces: usize,
   /// Numbef of tabs in line beginnings
   pub tabs: usize,
 }
 
-impl Eq for LineInfo {}
+impl Eq for BolInfo {}
+
+impl BolInfo {
+  pub fn get_common_bol(self: Self) -> BeginningOfLine {
+    if self.tabs > self.spaces {
+      BeginningOfLine::Tabs
+    } else {
+      BeginningOfLine::Spaces
+    }
+  }
+}
 
 /// Read beginning of line information
-pub fn read_bol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> {
-  let mut line_info = LineInfo { spaces: 0, tabs: 0 };
+pub fn read_bol_info(reader: &mut dyn Read) -> Result<BolInfo, Box<dyn Error>> {
+  let mut bol_info = BolInfo { spaces: 0, tabs: 0 };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut at_bol = true;
 
@@ -41,9 +47,9 @@ pub fn read_bol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> 
 
     if at_bol {
       if c == ' ' {
-        line_info.spaces += 1;
+        bol_info.spaces += 1;
       } else if c == '\t' {
-        line_info.tabs += 1;
+        bol_info.tabs += 1;
       } else {
         at_bol = false;
       }
@@ -52,7 +58,7 @@ pub fn read_bol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> 
     }
   }
 
-  Ok(line_info)
+  Ok(bol_info)
 }
 
 /// Write input file out with new beginning-of-lines
@@ -60,10 +66,11 @@ pub fn write_new_bols(
   reader: &mut dyn Read,
   writer: &mut dyn Write,
   new_bol: BeginningOfLine,
-  tab_size: usize,
+  old_tab_size: usize,
+  new_tab_size: usize,
   round_down: bool,
-) -> Result<LineInfo, Box<dyn Error>> {
-  let mut line_info = LineInfo { spaces: 0, tabs: 0 };
+) -> Result<BolInfo, Box<dyn Error>> {
+  let mut bol_info = BolInfo { spaces: 0, tabs: 0 };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut buf = [0u8; 4];
   let mut s = String::new();
@@ -73,7 +80,7 @@ pub fn write_new_bols(
 
     for c in s.chars() {
       if c == '\t' {
-        t.push_str(&" ".repeat(tab_size - (t.len() % tab_size)));
+        t.push_str(&" ".repeat(new_tab_size - (t.len() % new_tab_size)));
       } else {
         t.push(c);
       }
@@ -90,7 +97,7 @@ pub fn write_new_bols(
         num_spaces += 1;
       }
 
-      if num_spaces % tab_size == 0 {
+      if num_spaces % old_tab_size == 0 {
         t.push('\t');
         num_spaces = 0
       }
@@ -124,10 +131,10 @@ pub fn write_new_bols(
           let (t, num_spaces) = tabify(&s);
 
           s = t;
-          line_info.tabs += s.len() - num_spaces;
-          line_info.spaces += num_spaces;
+          bol_info.tabs += s.len() - num_spaces;
+          bol_info.spaces += num_spaces;
         } else {
-          line_info.spaces += s.len();
+          bol_info.spaces += s.len();
         }
 
         writer.write(s.as_bytes())?;
@@ -150,7 +157,7 @@ pub fn write_new_bols(
   }
   writer.flush()?;
 
-  Ok(line_info)
+  Ok(bol_info)
 }
 
 #[cfg(test)]

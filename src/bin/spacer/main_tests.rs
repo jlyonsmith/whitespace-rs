@@ -8,7 +8,15 @@ fn test_run_tabs() {
 
   std::fs::write(input_file, "\t\tabc\r").unwrap();
 
-  run(input_file, None, Some(BeginningOfLine::Spaces), 4, true).unwrap();
+  run(
+    input_file,
+    None,
+    Some(BeginningOfLineArg::Spaces),
+    4,
+    4,
+    true,
+  )
+  .unwrap();
 
   temp_dir.close().unwrap();
 }
@@ -21,7 +29,7 @@ fn test_run_status_only() {
 
   std::fs::write(input_file, "\t\tabc\r").unwrap();
 
-  run(input_file, None, None, 0, false).unwrap();
+  run(input_file, None, None, 4, 4, false).unwrap();
 
   temp_dir.close().unwrap();
 }
@@ -38,7 +46,8 @@ fn test_run_mixed() {
   run(
     input_file,
     Some(output_path.to_str().unwrap()),
-    Some(BeginningOfLine::Spaces),
+    Some(BeginningOfLineArg::Spaces),
+    4,
     4,
     true,
   )

@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn test_read_eol_info_lf() {
-  let line_info = read_eol_info(&mut "\n".as_bytes()).unwrap();
+  let eol_info = read_eol_info(&mut "\n".as_bytes()).unwrap();
 
   assert_eq!(
-    line_info,
-    LineInfo {
+    eol_info,
+    EolInfo {
       cr: 0,
       lf: 1,
       crlf: 0,
@@ -18,11 +18,11 @@ fn test_read_eol_info_lf() {
 
 #[test]
 fn test_read_eol_info_cr() {
-  let line_info = read_eol_info(&mut "\r".as_bytes()).unwrap();
+  let eol_info = read_eol_info(&mut "\r".as_bytes()).unwrap();
 
   assert_eq!(
-    line_info,
-    LineInfo {
+    eol_info,
+    EolInfo {
       cr: 1,
       lf: 0,
       crlf: 0,
@@ -34,11 +34,11 @@ fn test_read_eol_info_cr() {
 
 #[test]
 fn test_read_eol_info_crlf() {
-  let line_info = read_eol_info(&mut "\r\n".as_bytes()).unwrap();
+  let eol_info = read_eol_info(&mut "\r\n".as_bytes()).unwrap();
 
   assert_eq!(
-    line_info,
-    LineInfo {
+    eol_info,
+    EolInfo {
       cr: 0,
       lf: 0,
       crlf: 1,
@@ -50,11 +50,11 @@ fn test_read_eol_info_crlf() {
 
 #[test]
 fn test_read_eol_info_mixed1() {
-  let line_info = read_eol_info(&mut "\n\r\n\r".as_bytes()).unwrap();
+  let eol_info = read_eol_info(&mut "\n\r\n\r".as_bytes()).unwrap();
 
   assert_eq!(
-    line_info,
-    LineInfo {
+    eol_info,
+    EolInfo {
       cr: 1,
       lf: 1,
       crlf: 1,

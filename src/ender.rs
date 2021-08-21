@@ -14,7 +14,7 @@ pub enum EndOfLine {
 
 /// File line information
 #[derive(Debug, PartialEq)]
-pub struct LineInfo {
+pub struct EolInfo {
   pub cr: usize,
   pub lf: usize,
   pub crlf: usize,
@@ -22,9 +22,9 @@ pub struct LineInfo {
   pub num_endings: usize,
 }
 
-impl Eq for LineInfo {}
+impl Eq for EolInfo {}
 
-impl LineInfo {
+impl EolInfo {
   pub fn get_common_eol(self: Self) -> EndOfLine {
     let mut n = self.lf;
     let mut eol = EndOfLine::Lf;
@@ -43,8 +43,8 @@ impl LineInfo {
 }
 
 /// Read end-of-line information for a file
-pub fn read_eol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> {
-  let mut line_info = LineInfo {
+pub fn read_eol_info(reader: &mut dyn Read) -> Result<EolInfo, Box<dyn Error>> {
+  let mut eol_info = EolInfo {
     cr: 0,
     lf: 0,
     crlf: 0,
@@ -61,23 +61,23 @@ pub fn read_eol_info(reader: &mut dyn Read) -> Result<LineInfo, Box<dyn Error>> 
     };
     if c == '\r' {
       if matches!(decoder.peek(), Some(Ok(c)) if *c == '\n') {
-        line_info.crlf += 1;
+        eol_info.crlf += 1;
         decoder.next();
       } else {
-        line_info.cr += 1;
+        eol_info.cr += 1;
       }
 
-      line_info.num_lines += 1;
+      eol_info.num_lines += 1;
     } else if c == '\n' {
-      line_info.lf += 1;
-      line_info.num_lines += 1;
+      eol_info.lf += 1;
+      eol_info.num_lines += 1;
     }
   }
 
-  line_info.num_endings =
-    (line_info.cr > 0) as usize + (line_info.lf > 0) as usize + (line_info.crlf > 0) as usize;
+  eol_info.num_endings =
+    (eol_info.cr > 0) as usize + (eol_info.lf > 0) as usize + (eol_info.crlf > 0) as usize;
 
-  Ok(line_info)
+  Ok(eol_info)
 }
 
 /// Write input file out with new end-of-lines

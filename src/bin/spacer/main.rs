@@ -1,4 +1,4 @@
-use clap::{value_t, App, Arg};
+use clap::{arg_enum, value_t, App, Arg};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -7,6 +7,16 @@ use std::path::Path;
 use whitespace_rs::spacer::*;
 
 // {grcov-excl-start}
+arg_enum! {
+  #[derive(PartialEq, Debug, Clone, Copy)]
+  /// Types of line beginnings
+  pub enum BeginningOfLineArg {
+      Tabs,
+      Spaces,
+      Auto,
+  }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("Ender")
         .version("1.0.0-20120712.0")
@@ -28,22 +38,31 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("new_bol")
+            Arg::with_name("bol_arg")
                 .help("Standardize line beginnings")
                 .long("new-bol")
                 .short("n")
                 .takes_value(true)
-                .possible_values(&BeginningOfLine::variants())
+                .possible_values(&BeginningOfLineArg::variants())
                 .case_insensitive(true),
         )
         .arg(
-            Arg::with_name("tab_size")
-                .help("Tab size to assume when converting tabs")
-                .long("tab-size")
-                .short("t")
+            Arg::with_name("old_tab_size")
+                .help("Tab size to assume in the input file")
+                .long("old-tab-size")
+                .short("ot")
                 .takes_value(true)
                 .value_name("TAB_SIZE")
-                .default_value("2"),
+                .default_value("4"),
+        )
+        .arg(
+            Arg::with_name("new_tab_size")
+                .help("Tab size to assume in the output file")
+                .long("new-tab-size")
+                .short("nt")
+                .takes_value(true)
+                .value_name("TAB_SIZE")
+                .default_value("4"),
         )
         .arg(
             Arg::with_name("round_down")
@@ -56,8 +75,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let result = run(
         matches.value_of("input_file").unwrap(),
         matches.value_of("output_file"),
-        value_t!(matches, "new_bol", BeginningOfLine).ok(),
-        usize::from_str_radix(matches.value_of("tab_size").unwrap(), 10)?,
+        value_t!(matches, "bol_arg", BeginningOfLineArg).ok(),
+        usize::from_str_radix(matches.value_of("old_tab_size").unwrap(), 10)?,
+        usize::from_str_radix(matches.value_of("new_tab_size").unwrap(), 10)?,
         matches.is_present("round_down"),
     );
 
@@ -72,12 +92,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub fn run(
     input_file: &str,
     output_file: Option<&str>,
-    new_bol: Option<BeginningOfLine>,
-    tab_size: usize,
+    bol_arg: Option<BeginningOfLineArg>,
+    old_tab_size: usize,
+    new_tab_size: usize,
     round_down: bool,
 ) -> Result<(), Box<dyn Error>> {
     let mut reader = BufReader::new(File::open(Path::new(input_file))?);
-    let line_info = read_bol_info(&mut reader)?;
+    let bol_info = read_bol_info(&mut reader)?;
     let bol_type = |s: usize, t: usize| {
         if t > 0 {
             if s > 0 {
@@ -93,17 +114,30 @@ pub fn run(
     print!(
         "'{}', {}",
         input_file,
-        bol_type(line_info.spaces, line_info.tabs),
+        bol_type(bol_info.spaces, bol_info.tabs),
     );
 
-    if let Some(new_bol) = new_bol {
+    if let Some(bol_arg) = bol_arg {
+        let new_bol = match bol_arg {
+            BeginningOfLineArg::Auto => bol_info.get_common_bol(),
+            BeginningOfLineArg::Tabs => BeginningOfLine::Tabs,
+            BeginningOfLineArg::Spaces => BeginningOfLine::Spaces,
+        };
+
         reader.seek(SeekFrom::Start(0))?;
 
         let mut writer: Box<dyn Write> = match output_file {
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
         };
-        let line_info = write_new_bols(&mut reader, &mut writer, new_bol, tab_size, round_down)?;
+        let bol_info = write_new_bols(
+            &mut reader,
+            &mut writer,
+            new_bol,
+            old_tab_size,
+            new_tab_size,
+            round_down,
+        )?;
 
         println!(
             " -> '{}', {}",
@@ -112,7 +146,7 @@ pub fn run(
             } else {
                 "STDOUT"
             },
-            bol_type(line_info.spaces, line_info.tabs)
+            bol_type(bol_info.spaces, bol_info.tabs)
         )
     }
 
