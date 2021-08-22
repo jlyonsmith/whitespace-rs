@@ -1,18 +1,55 @@
-//! Report on or fix line endings
+//! Report on or fix line endings.
+//!
+//! To find out the line endings given a `Read` trait object use [`crate::ender::read_eol_info()`]:
+//!
+//! ```
+//! use std::error::Error;
+//! use std::fs::File;
+//! use whitespace_rs::ender;
+//!
+//! fn main() -> Result<(), Box<dyn Error>> {
+//!   let mut reader = "abc\n\r\r\n".as_bytes();
+//!   let eol_info = ender::read_eol_info(&mut reader)?;
+//!
+//!   println!("{:?}", eol_info);
+//!   Ok(())
+//! }
+//! ```
+//!
+//! To normalize line endings given a `Read` trait object, create a `Write` trait object and
+//! use [`crate::ender::write_new_eols()`]:
+//!
+//! ```
+//! use std::error::Error;
+//! use std::fs::File;
+//! use whitespace_rs::ender;
+//!
+//! fn main() -> Result<(), Box<dyn Error>> {
+//!   let mut reader = "abc\n\r\r\n".as_bytes();
+//!   let mut writer = Vec::new();
+//!   let num_lines = ender::write_new_eols(&mut reader, &mut writer, ender::EndOfLine::Lf)?;
+//!
+//!   println!("{}", num_lines);
+//!   Ok(())
+//! }
+//! ```
 
 use std::error::Error;
 use std::io::{Read, Write};
 use utf8_decode::UnsafeDecoder;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
-/// Types of line endings
+/// Types of line endings.
 pub enum EndOfLine {
+  /// Carriage return.
   Cr,
+  /// Line feed.
   Lf,
+  /// Carriage return and line feed.
   CrLf,
 }
 
-/// File line information
+/// File line information.
 #[derive(Debug, PartialEq)]
 pub struct EolInfo {
   pub cr: usize,
@@ -25,6 +62,7 @@ pub struct EolInfo {
 impl Eq for EolInfo {}
 
 impl EolInfo {
+  /// Get the most common end-of-line based on the info.
   pub fn get_common_eol(self: Self) -> EndOfLine {
     let mut n = self.lf;
     let mut eol = EndOfLine::Lf;
@@ -42,7 +80,7 @@ impl EolInfo {
   }
 }
 
-/// Read end-of-line information for a file
+/// Read end-of-line information for a file.
 pub fn read_eol_info(reader: &mut dyn Read) -> Result<EolInfo, Box<dyn Error>> {
   let mut eol_info = EolInfo {
     cr: 0,
@@ -80,7 +118,7 @@ pub fn read_eol_info(reader: &mut dyn Read) -> Result<EolInfo, Box<dyn Error>> {
   Ok(eol_info)
 }
 
-/// Write input file out with new end-of-lines
+/// Write input file out with new end-of-lines.
 pub fn write_new_eols(
   reader: &mut dyn Read,
   writer: &mut dyn Write,

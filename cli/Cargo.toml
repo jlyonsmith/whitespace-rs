@@ -1,0 +1,11 @@
+[package]
+name = "whitespace_rs_cli"
+version = "1.0.0"
+edition = "2018"
+
+[dependencies]
+clap = "^2.33.3"
+whitespace_rs = { path = "../lib" }
+
+[dev-dependencies]
+tempfile = "^3.2"

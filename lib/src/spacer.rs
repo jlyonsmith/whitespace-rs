@@ -7,7 +7,9 @@ use utf8_decode::UnsafeDecoder;
 #[derive(Debug, PartialEq)]
 /// Types of line beginnings
 pub enum BeginningOfLine {
+  /// Tabs and spaces if not rounding down extra spaces
   Tabs,
+  /// Spaces
   Spaces,
 }
 
@@ -23,6 +25,7 @@ pub struct BolInfo {
 impl Eq for BolInfo {}
 
 impl BolInfo {
+  /// Get the most common beginning of line type in the file
   pub fn get_common_bol(self: Self) -> BeginningOfLine {
     if self.tabs > self.spaces {
       BeginningOfLine::Tabs
@@ -70,6 +73,8 @@ pub fn write_new_bols(
   new_tab_size: usize,
   round_down: bool,
 ) -> Result<BolInfo, Box<dyn Error>> {
+  let old_tab_size = std::cmp::max(1, old_tab_size);
+  let new_tab_size = std::cmp::max(1, new_tab_size);
   let mut bol_info = BolInfo { spaces: 0, tabs: 0 };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut buf = [0u8; 4];
