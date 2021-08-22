@@ -38,6 +38,7 @@ use std::error::Error;
 use std::io::{Read, Write};
 use utf8_decode::UnsafeDecoder;
 
+// {grcov-excl-start}
 #[derive(PartialEq, Debug, Clone, Copy)]
 /// Types of line endings.
 pub enum EndOfLine {
@@ -48,6 +49,7 @@ pub enum EndOfLine {
   /// Carriage return and line feed.
   CrLf,
 }
+// {grcov-excl-end}
 
 /// File line information.
 #[derive(Debug, PartialEq)]

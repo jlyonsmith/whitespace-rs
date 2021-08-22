@@ -1,9 +1,43 @@
 //! Report on or fix beginning of line spacing
+//!
+//! To find out the line beginnings given a [`Read`] trait object use [`read_bol_info()`]:
+//!
+//! ```
+//! use std::error::Error;
+//! use std::fs::File;
+//! use whitespace_rs::spacer;
+//!
+//! fn main() -> Result<(), Box<dyn Error>> {
+//!   let mut reader = "abc\n\r\r\n".as_bytes();
+//!   let bol_info = spacer::read_bol_info(&mut reader)?;
+//!
+//!   println!("{:?}", bol_info);
+//!   Ok(())
+//! }
+//! ```
+//!
+//! To normalize line beginnings given a [`Read`] trait object, create a [`Write`] trait object and use [`write_new_bols()`]:
+//!
+//! ```
+//! use std::error::Error;
+//! use std::fs::File;
+//! use whitespace_rs::spacer;
+//!
+//! fn main() -> Result<(), Box<dyn Error>> {
+//!   let mut reader = "abc\n\r\r\n".as_bytes();
+//!   let mut writer = Vec::new();
+//!   let bol_info = spacer::write_new_bols(&mut reader, &mut writer, spacer::BeginningOfLine::Tabs, 2, 4, true)?;
+//!
+//!   println!("{:?}", bol_info);
+//!   Ok(())
+//! }
+//! ```
 
 use std::error::Error;
 use std::io::{Read, Write};
 use utf8_decode::UnsafeDecoder;
 
+// {grcov-excl-start}
 #[derive(Debug, PartialEq)]
 /// Types of line beginnings
 pub enum BeginningOfLine {
@@ -12,6 +46,7 @@ pub enum BeginningOfLine {
   /// Spaces
   Spaces,
 }
+// {grcov-excl-end}
 
 #[derive(Debug, PartialEq)]
 /// Information about line beginnings in the file
