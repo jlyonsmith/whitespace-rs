@@ -11,7 +11,7 @@ repository = "https://github.com/jlyonsmith/whitespace-rs"
 keywords = ["whitespace"]
 categories = ["command-line-utilities", "development-tools"]
 
-license = "UNLICENSE"
+license = "Unlicense"
 
 [features]
 default = ["cli"]

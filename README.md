@@ -20,6 +20,6 @@ The following command line tools are included in this crate using the `cli` feat
 
 ## License
 
-Whitespace Tools is distributed under the terms of the [UNLICENSE](http://unlicense.org/) license.
+Whitespace Tools is distributed under the terms of the [Unlicense](http://unlicense.org/) license.
 
-See UNLICENSE for details.
+See the file UNLICENSE for details.
