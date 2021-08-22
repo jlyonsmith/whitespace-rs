@@ -1,15 +1,16 @@
 # Whitespace Tools (Rust Edition)
 
-![Coverage](https://github.com/jlyonsmith/whitespace-rs/blob/main/badges/coverage.svg)]
+[![Crates.io](https://img.shields.io/crates/v/whitespace-rs.svg)](https://crates.io/crates/whitespace-rs)
+[![Docs.rs](https://docs.rs/whitespace-rs/badge.svg)](https://docs.rs/whitespace-rs)
 
 A Rust package and command line tools for fixing whitespace problems in text files.
 
 - Reports on end-of-lines.
-- Standardize end-of-linen to CR, LF or CRLF
+- Standardize end-of-lines to CR, LF or CRLF
 - Report on beginnings-of-lines.
-- Standarize beginnings-of-lines them to spaces or tabs.
-- Handles `Read` trait objects that are a mixture of different endings or beginnings
-- Allows configuring the tab size on input and output
+- Standarize beginnings-of-lines to spaces or tabs.
+- Handles a mixture of different endings or beginnings
+- Allows configuring the tab size on both input and output
 
 ## Command Line
 
