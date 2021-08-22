@@ -193,20 +193,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
 
 [[package]]
-name = "whitespace_rs"
-version = "1.0.0"
-dependencies = [
- "tempfile",
- "utf8-decode",
-]
-
-[[package]]
-name = "whitespace_rs_cli"
+name = "whitespace-rs"
 version = "1.0.0"
 dependencies = [
  "clap",
  "tempfile",
- "whitespace_rs",
+ "utf8-decode",
 ]
 
 [[package]]

@@ -1,2 +1,39 @@
-[workspace]
-members = ["lib", "cli"]
+[package]
+name = "whitespace-rs"
+version = "1.0.0"
+edition = "2018"
+authors = ["John Lyon-Smith <john@lyon-smith.org>"]
+
+readme = "README.md"
+description = "Tools for fixing whitespace problems in text and source code files"
+repository = "https://github.com/jlyonsmith/whitespace-rs"
+
+keywords = ["whitespace"]
+categories = ["command-line-utilities", "development-tools"]
+
+license = "UNLICENSE"
+
+[features]
+default = ["cli"]
+cli = ["clap"]
+
+[dependencies]
+clap = { version = "^2.33.3", optional = true }
+utf8-decode = "^1.0"
+
+[dev-dependencies]
+tempfile = "^3.2"
+
+[lib]
+name = "whitespace_rs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ender"
+path = "src/bin/ender.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "spacer"
+path = "src/bin/spacer.rs"
+required-features = ["cli"]
