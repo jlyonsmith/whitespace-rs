@@ -26,13 +26,14 @@
 //! fn main() -> Result<(), Box<dyn Error>> {
 //!   let mut reader = "abc\n\r\r\n".as_bytes();
 //!   let mut writer = Vec::new();
-//!   let bol_info = spacer::write_new_bols(&mut reader, &mut writer, spacer::BeginningOfLine::Tabs, 2, true)?;
+//!   let bol_info = spacer::write_new_bols(&mut reader, &mut writer, spacer::BeginningOfLine::Tabs(2, true))?;
 //!
 //!   println!("{:?}", bol_info);
 //!   Ok(())
 //! }
 //! ```
 
+use std::cmp::max;
 use std::error::Error;
 use std::io::{Read, Write};
 use utf8_decode::UnsafeDecoder;
@@ -41,10 +42,10 @@ use utf8_decode::UnsafeDecoder;
 #[derive(Debug, PartialEq)]
 /// Types of line beginnings
 pub enum BeginningOfLine {
-  /// Tabs and spaces if not rounding down extra spaces
-  Tabs,
+  /// Tabs (and spaces if not rounding down extra spaces)
+  Tabs(usize, bool),
   /// Spaces
-  Spaces,
+  Spaces(usize),
 }
 // {grcov-excl-end}
 
@@ -65,11 +66,11 @@ impl Eq for BolInfo {}
 
 impl BolInfo {
   /// Get the most common beginning of line type in the file
-  pub fn get_common_bol(self: Self) -> BeginningOfLine {
+  pub fn get_common_bol(self: Self, tab_size: usize, round_down: bool) -> BeginningOfLine {
     if self.tabs > self.spaces {
-      BeginningOfLine::Tabs
+      BeginningOfLine::Tabs(tab_size, round_down)
     } else {
-      BeginningOfLine::Spaces
+      BeginningOfLine::Spaces(tab_size)
     }
   }
 }
@@ -125,10 +126,11 @@ pub fn write_new_bols(
   reader: &mut dyn Read,
   writer: &mut dyn Write,
   new_bol: BeginningOfLine,
-  tab_size: usize,
-  round_down: bool,
 ) -> Result<BolInfo, Box<dyn Error>> {
-  let tab_size = std::cmp::max(1, tab_size);
+  let (tab_size, round_down) = match new_bol {
+    BeginningOfLine::Spaces(tab_size) => (max(1, tab_size), false),
+    BeginningOfLine::Tabs(tab_size, round_down) => (max(1, tab_size), round_down),
+  };
   let mut bol_info = BolInfo {
     none: 0,
     spaces: 0,
@@ -194,7 +196,7 @@ pub fn write_new_bols(
         } else {
           s = untabify(&s);
 
-          if new_bol == BeginningOfLine::Tabs {
+          if let BeginningOfLine::Tabs(_, _) = new_bol {
             let (t, num_spaces) = tabify(&s);
 
             s = t;
@@ -255,7 +257,7 @@ mod tests {
   fn test_write_new_file_tabs_round_down() {
     let mut input = "\na\n  b\n     c\n".as_bytes();
     let mut output = Vec::new();
-    let bol_info = write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, true).unwrap();
+    let bol_info = write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs(2, true)).unwrap();
 
     assert_eq!(
       bol_info,
@@ -274,7 +276,7 @@ mod tests {
     let mut input = "\na\n  b\n     c\n".as_bytes();
     let mut output = Vec::new();
     let bol_info =
-      write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, false).unwrap();
+      write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs(2, false)).unwrap();
 
     assert_eq!(
       bol_info,
@@ -292,8 +294,7 @@ mod tests {
   fn test_write_new_file_spaces() {
     let mut input = "\ta\n \t x\n\t\t\n".as_bytes();
     let mut output = Vec::new();
-    let bol_info =
-      write_new_bols(&mut input, &mut output, BeginningOfLine::Spaces, 2, true).unwrap();
+    let bol_info = write_new_bols(&mut input, &mut output, BeginningOfLine::Spaces(2)).unwrap();
 
     assert_eq!(
       bol_info,

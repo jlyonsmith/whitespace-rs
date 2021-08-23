@@ -110,9 +110,9 @@ pub fn run(
 
     if let Some(bol_arg) = bol_arg {
         let new_bol = match bol_arg {
-            BeginningOfLineArg::Auto => bol_info.get_common_bol(),
-            BeginningOfLineArg::Tabs => BeginningOfLine::Tabs,
-            BeginningOfLineArg::Spaces => BeginningOfLine::Spaces,
+            BeginningOfLineArg::Auto => bol_info.get_common_bol(tab_size, round_down),
+            BeginningOfLineArg::Tabs => BeginningOfLine::Tabs(tab_size, round_down),
+            BeginningOfLineArg::Spaces => BeginningOfLine::Spaces(tab_size),
         };
 
         reader.seek(SeekFrom::Start(0))?;
@@ -121,7 +121,7 @@ pub fn run(
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
         };
-        let bol_info = write_new_bols(&mut reader, &mut writer, new_bol, tab_size, round_down)?;
+        let bol_info = write_new_bols(&mut reader, &mut writer, new_bol)?;
 
         println!(
             " -> '{}', {}",
