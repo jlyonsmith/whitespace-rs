@@ -26,7 +26,7 @@
 //! fn main() -> Result<(), Box<dyn Error>> {
 //!   let mut reader = "abc\n\r\r\n".as_bytes();
 //!   let mut writer = Vec::new();
-//!   let bol_info = spacer::write_new_bols(&mut reader, &mut writer, spacer::BeginningOfLine::Tabs, 2, 4, true)?;
+//!   let bol_info = spacer::write_new_bols(&mut reader, &mut writer, spacer::BeginningOfLine::Tabs, 2, true)?;
 //!
 //!   println!("{:?}", bol_info);
 //!   Ok(())
@@ -125,12 +125,10 @@ pub fn write_new_bols(
   reader: &mut dyn Read,
   writer: &mut dyn Write,
   new_bol: BeginningOfLine,
-  old_tab_size: usize,
-  new_tab_size: usize,
+  tab_size: usize,
   round_down: bool,
 ) -> Result<BolInfo, Box<dyn Error>> {
-  let old_tab_size = std::cmp::max(1, old_tab_size);
-  let new_tab_size = std::cmp::max(1, new_tab_size);
+  let tab_size = std::cmp::max(1, tab_size);
   let mut bol_info = BolInfo {
     none: 0,
     spaces: 0,
@@ -146,7 +144,7 @@ pub fn write_new_bols(
 
     for c in s.chars() {
       if c == '\t' {
-        t.push_str(&" ".repeat(new_tab_size - (t.len() % new_tab_size)));
+        t.push_str(&" ".repeat(tab_size - (t.len() % tab_size)));
       } else {
         t.push(c);
       }
@@ -163,7 +161,7 @@ pub fn write_new_bols(
         num_spaces += 1;
       }
 
-      if num_spaces % old_tab_size == 0 {
+      if num_spaces % tab_size == 0 {
         t.push('\t');
         num_spaces = 0
       }
@@ -191,19 +189,27 @@ pub fn write_new_bols(
       if c == ' ' || c == '\t' {
         s.push(c);
       } else {
-        s = untabify(&s);
-
-        if new_bol == BeginningOfLine::Tabs {
-          let (t, num_spaces) = tabify(&s);
-
-          s = t;
-          bol_info.tabs += s.len() - num_spaces;
-          bol_info.spaces += num_spaces;
+        if s.len() == 0 {
+          bol_info.none += 1
         } else {
-          bol_info.spaces += s.len();
+          s = untabify(&s);
+
+          if new_bol == BeginningOfLine::Tabs {
+            let (t, num_spaces) = tabify(&s);
+
+            s = t;
+            if num_spaces > 0 {
+              bol_info.mixed += 1;
+            } else {
+              bol_info.tabs += 1;
+            }
+          } else {
+            bol_info.spaces += 1;
+          }
+
+          writer.write(s.as_bytes())?;
         }
 
-        writer.write(s.as_bytes())?;
         writer.write(c.encode_utf8(&mut buf).as_bytes())?;
 
         if c == '\n' {
@@ -246,55 +252,54 @@ mod tests {
   }
 
   #[test]
-  fn test_write_new_file_round_down() {
-    let mut input = " a\n  x\n    \n".as_bytes();
+  fn test_write_new_file_tabs_round_down() {
+    let mut input = "\na\n  b\n     c\n".as_bytes();
     let mut output = Vec::new();
-    let bol_info =
-      write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, 4, true).unwrap();
+    let bol_info = write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, true).unwrap();
 
     assert_eq!(
       bol_info,
       BolInfo {
-        none: 0,
+        none: 2,
         spaces: 0,
-        tabs: 3,
+        tabs: 2,
         mixed: 0
       }
     );
-    assert_eq!(String::from_utf8(output).unwrap(), "a\n\tx\n\t\t\n");
+    assert_eq!(String::from_utf8(output).unwrap(), "\na\n\tb\n\t\tc\n");
   }
 
   #[test]
-  fn test_write_new_file() {
-    let mut input = " a\n   x\n    \n".as_bytes();
+  fn test_write_new_file_tabs_no_round_down() {
+    let mut input = "\na\n  b\n     c\n".as_bytes();
     let mut output = Vec::new();
     let bol_info =
-      write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, 2, false).unwrap();
+      write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, false).unwrap();
 
     assert_eq!(
       bol_info,
       BolInfo {
-        none: 0,
-        spaces: 2,
-        tabs: 3,
-        mixed: 0
+        none: 2,
+        spaces: 0,
+        tabs: 1,
+        mixed: 1
       }
     );
-    assert_eq!(String::from_utf8(output).unwrap(), " a\n\t x\n\t\t\n");
+    assert_eq!(String::from_utf8(output).unwrap(), "\na\n\tb\n\t\t c\n");
   }
 
   #[test]
-  fn test_write_new_file_tabs() {
+  fn test_write_new_file_spaces() {
     let mut input = "\ta\n \t x\n\t\t\n".as_bytes();
     let mut output = Vec::new();
     let bol_info =
-      write_new_bols(&mut input, &mut output, BeginningOfLine::Spaces, 2, 2, true).unwrap();
+      write_new_bols(&mut input, &mut output, BeginningOfLine::Spaces, 2, true).unwrap();
 
     assert_eq!(
       bol_info,
       BolInfo {
         none: 0,
-        spaces: 9,
+        spaces: 3,
         tabs: 0,
         mixed: 0
       }

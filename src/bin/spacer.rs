@@ -49,19 +49,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .case_insensitive(true),
         )
         .arg(
-            Arg::with_name("old_tab_size")
-                .help("Tab size to assume in the input file")
-                .long("old-tab-size")
-                .short("ot")
-                .takes_value(true)
-                .value_name("TAB_SIZE")
-                .default_value("4"),
-        )
-        .arg(
-            Arg::with_name("new_tab_size")
-                .help("Tab size to assume in the output file")
-                .long("new-tab-size")
-                .short("nt")
+            Arg::with_name("tab_size")
+                .help("Tab size for both input and output file")
+                .long("tab-size")
+                .short("t")
                 .takes_value(true)
                 .value_name("TAB_SIZE")
                 .default_value("4"),
@@ -78,8 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         matches.value_of("input_file").unwrap(),
         matches.value_of("output_file"),
         value_t!(matches, "bol_arg", BeginningOfLineArg).ok(),
-        usize::from_str_radix(matches.value_of("old_tab_size").unwrap(), 10)?,
-        usize::from_str_radix(matches.value_of("new_tab_size").unwrap(), 10)?,
+        usize::from_str_radix(matches.value_of("tab_size").unwrap(), 10)?,
         matches.is_present("round_down"),
     );
 
@@ -95,8 +85,7 @@ pub fn run(
     input_file: &str,
     output_file: Option<&str>,
     bol_arg: Option<BeginningOfLineArg>,
-    old_tab_size: usize,
-    new_tab_size: usize,
+    tab_size: usize,
     round_down: bool,
 ) -> Result<(), Box<dyn Error>> {
     let mut reader = BufReader::new(File::open(Path::new(input_file))?);
@@ -132,14 +121,7 @@ pub fn run(
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
         };
-        let bol_info = write_new_bols(
-            &mut reader,
-            &mut writer,
-            new_bol,
-            old_tab_size,
-            new_tab_size,
-            round_down,
-        )?;
+        let bol_info = write_new_bols(&mut reader, &mut writer, new_bol, tab_size, round_down)?;
 
         println!(
             " -> '{}', {}",
@@ -167,15 +149,7 @@ mod tests {
 
         std::fs::write(input_file, "\t\tabc\r").unwrap();
 
-        run(
-            input_file,
-            None,
-            Some(BeginningOfLineArg::Spaces),
-            4,
-            4,
-            true,
-        )
-        .unwrap();
+        run(input_file, None, Some(BeginningOfLineArg::Spaces), 4, true).unwrap();
 
         temp_dir.close().unwrap();
     }
@@ -188,7 +162,7 @@ mod tests {
 
         std::fs::write(input_file, "\t\tabc\r").unwrap();
 
-        run(input_file, None, None, 4, 4, false).unwrap();
+        run(input_file, None, None, 4, false).unwrap();
 
         temp_dir.close().unwrap();
     }
@@ -206,7 +180,6 @@ mod tests {
             input_file,
             Some(output_path.to_str().unwrap()),
             Some(BeginningOfLineArg::Auto),
-            4,
             2,
             true,
         )
@@ -229,7 +202,6 @@ mod tests {
             Some(output_path.to_str().unwrap()),
             Some(BeginningOfLineArg::Auto),
             2,
-            4,
             true,
         )
         .unwrap();
