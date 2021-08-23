@@ -14,13 +14,11 @@ A Rust package and command line tools for fixing whitespace problems in text fil
 
 ## Command Line
 
-The following command line tools are included in this crate using the `cli` feature flag which is installed by default:
+The command line tools `ender` and `spacer` are included in this crate using the `cli` feature flag (installed by default.)
 
 - `ender` - reports and optionally normalizes or changes line endings in text files. See `ender --help` for details.
 - `spacer` - reports on and optionally normalizes whitespace at the beginning of lines. See `spacer --help` for details.
 
 ## License
 
-Whitespace Tools is distributed under the terms of the [Unlicense](http://unlicense.org/) license.
-
-See the file UNLICENSE for details.
+Whitespace Tools is distributed under the terms of the [Unlicense](http://unlicense.org/) license. See the file [`UNLICENSE`](UNLICENSE) for details.

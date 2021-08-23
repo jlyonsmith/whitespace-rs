@@ -51,10 +51,12 @@ pub enum BeginningOfLine {
 #[derive(Debug, PartialEq)]
 /// Information about line beginnings in the file
 pub struct BolInfo {
-  /// Number of spaces in line beginnings
+  /// Number of all space line beginnings
   pub spaces: usize,
-  /// Numbef of tabs in line beginnings
+  /// Number of all tab line beginnings
   pub tabs: usize,
+  /// Number of mixed space/tab line beginnings
+  pub mixed: usize,
 }
 
 impl Eq for BolInfo {}
@@ -72,7 +74,11 @@ impl BolInfo {
 
 /// Read beginning of line information
 pub fn read_bol_info(reader: &mut dyn Read) -> Result<BolInfo, Box<dyn Error>> {
-  let mut bol_info = BolInfo { spaces: 0, tabs: 0 };
+  let mut bol_info = BolInfo {
+    spaces: 0,
+    tabs: 0,
+    mixed: 0,
+  };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut at_bol = true;
 
@@ -110,7 +116,11 @@ pub fn write_new_bols(
 ) -> Result<BolInfo, Box<dyn Error>> {
   let old_tab_size = std::cmp::max(1, old_tab_size);
   let new_tab_size = std::cmp::max(1, new_tab_size);
-  let mut bol_info = BolInfo { spaces: 0, tabs: 0 };
+  let mut bol_info = BolInfo {
+    spaces: 0,
+    tabs: 0,
+    mixed: 0,
+  };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut buf = [0u8; 4];
   let mut s = String::new();
@@ -208,7 +218,14 @@ mod tests {
   fn test_read_bol_info() {
     let bol_info = read_bol_info(&mut "  \txyz\n".as_bytes()).unwrap();
 
-    assert_eq!(bol_info, BolInfo { spaces: 2, tabs: 1 });
+    assert_eq!(
+      bol_info,
+      BolInfo {
+        spaces: 2,
+        tabs: 1,
+        mixed: 0
+      }
+    );
   }
 
   #[test]
@@ -218,7 +235,14 @@ mod tests {
     let bol_info =
       write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, 4, true).unwrap();
 
-    assert_eq!(bol_info, BolInfo { spaces: 0, tabs: 3 });
+    assert_eq!(
+      bol_info,
+      BolInfo {
+        spaces: 0,
+        tabs: 3,
+        mixed: 0
+      }
+    );
     assert_eq!(String::from_utf8(output).unwrap(), "a\n\tx\n\t\t\n");
   }
 
@@ -229,7 +253,14 @@ mod tests {
     let bol_info =
       write_new_bols(&mut input, &mut output, BeginningOfLine::Tabs, 2, 2, false).unwrap();
 
-    assert_eq!(bol_info, BolInfo { spaces: 2, tabs: 3 });
+    assert_eq!(
+      bol_info,
+      BolInfo {
+        spaces: 2,
+        tabs: 3,
+        mixed: 0
+      }
+    );
     assert_eq!(String::from_utf8(output).unwrap(), " a\n\t x\n\t\t\n");
   }
 
@@ -240,7 +271,14 @@ mod tests {
     let bol_info =
       write_new_bols(&mut input, &mut output, BeginningOfLine::Spaces, 2, 2, true).unwrap();
 
-    assert_eq!(bol_info, BolInfo { spaces: 9, tabs: 0 });
+    assert_eq!(
+      bol_info,
+      BolInfo {
+        spaces: 9,
+        tabs: 0,
+        mixed: 0
+      }
+    );
     assert_eq!(String::from_utf8(output).unwrap(), "  a\n   x\n    \n");
   }
 }

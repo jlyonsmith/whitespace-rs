@@ -18,10 +18,12 @@ arg_enum! {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let matches = App::new("Ender")
-        .version("1.0.0-20120712.0")
+    let matches = App::new("Spacer")
+        .version("1.0.1-20210822.1")
         .author("John Lyon-Smith")
-        .about("End of line normalizer. Defaults to reporting types of endings.")
+        .about(
+            "Beginning of line normalizer. Defaults to reporting types count of spaces, tab and mixed beginnings.",
+        )
         .arg(
             Arg::with_name("input_file")
                 .help("Input file in UTF-8 format.")

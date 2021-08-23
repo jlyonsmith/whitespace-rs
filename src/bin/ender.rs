@@ -20,7 +20,7 @@ arg_enum! {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("Ender")
-        .version("1.0.0-20120712.0")
+        .version("1.0.1-20210822.1")
         .author("John Lyon-Smith")
         .about("End of line normalizer.  Defaults to reporting types of endings.")
         .arg(
@@ -125,78 +125,78 @@ mod tests {
 
     #[test]
     fn test_run_auto() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let output_path = temp_dir.path().join("output_file.txt");
-    let input_path = temp_dir.path().join("input_file.txt");
-    let input_file = input_path.to_str().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let output_path = temp_dir.path().join("output_file.txt");
+        let input_path = temp_dir.path().join("input_file.txt");
+        let input_file = input_path.to_str().unwrap();
 
-    std::fs::write(input_file, "abc\nxyz\r\n\r\n123\r\r\r").unwrap();
+        std::fs::write(input_file, "abc\nxyz\r\n\r\n123\r\r\r").unwrap();
 
-    run(
-        input_file,
-        Some(output_path.to_str().unwrap()),
-        Some(EndOfLineArg::Auto),
-    )
-    .unwrap();
+        run(
+            input_file,
+            Some(output_path.to_str().unwrap()),
+            Some(EndOfLineArg::Auto),
+        )
+        .unwrap();
 
-    temp_dir.close().unwrap();
+        temp_dir.close().unwrap();
     }
 
     #[test]
     fn test_run_just_status() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let input_path = temp_dir.path().join("input_file.txt");
-    let input_file = input_path.to_str().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let input_path = temp_dir.path().join("input_file.txt");
+        let input_file = input_path.to_str().unwrap();
 
-    std::fs::write(input_file, "abc\r\n").unwrap();
+        std::fs::write(input_file, "abc\r\n").unwrap();
 
-    run(input_file, None, None).unwrap();
+        run(input_file, None, None).unwrap();
 
-    temp_dir.close().unwrap();
+        temp_dir.close().unwrap();
     }
 
     #[test]
     fn test_run_crlf() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let output_path = temp_dir.path().join("output_file.txt");
-    let input_path = temp_dir.path().join("input_file.txt");
-    let input_file = input_path.to_str().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let output_path = temp_dir.path().join("output_file.txt");
+        let input_path = temp_dir.path().join("input_file.txt");
+        let input_file = input_path.to_str().unwrap();
 
-    std::fs::write(input_file, "abc\r\n").unwrap();
+        std::fs::write(input_file, "abc\r\n").unwrap();
 
-    run(
-        input_file,
-        Some(output_path.to_str().unwrap()),
-        Some(EndOfLineArg::Lf),
-    )
-    .unwrap();
+        run(
+            input_file,
+            Some(output_path.to_str().unwrap()),
+            Some(EndOfLineArg::Lf),
+        )
+        .unwrap();
 
-    temp_dir.close().unwrap();
+        temp_dir.close().unwrap();
     }
 
     #[test]
     fn test_run_cr() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let input_path = temp_dir.path().join("input_file.txt");
-    let input_file = input_path.to_str().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let input_path = temp_dir.path().join("input_file.txt");
+        let input_file = input_path.to_str().unwrap();
 
-    std::fs::write(input_file, "abc\r").unwrap();
+        std::fs::write(input_file, "abc\r").unwrap();
 
-    run(input_file, None, Some(EndOfLineArg::CrLf)).unwrap();
+        run(input_file, None, Some(EndOfLineArg::CrLf)).unwrap();
 
-    temp_dir.close().unwrap();
+        temp_dir.close().unwrap();
     }
 
     #[test]
     fn test_run_lf() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let input_path = temp_dir.path().join("input_file.txt");
-    let input_file = input_path.to_str().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let input_path = temp_dir.path().join("input_file.txt");
+        let input_file = input_path.to_str().unwrap();
 
-    std::fs::write(input_file, "abc\n").unwrap();
+        std::fs::write(input_file, "abc\n").unwrap();
 
-    run(input_file, None, Some(EndOfLineArg::CrLf)).unwrap();
+        run(input_file, None, Some(EndOfLineArg::CrLf)).unwrap();
 
-    temp_dir.close().unwrap();
+        temp_dir.close().unwrap();
     }
 }
