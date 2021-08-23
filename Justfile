@@ -11,3 +11,7 @@ show-coverage:
 
 show-doc:
   cargo doc --open
+
+release:
+  #!/usr/bin/env -S deno -q run
+  console.log("Hello Just")

@@ -51,6 +51,8 @@ pub enum BeginningOfLine {
 #[derive(Debug, PartialEq)]
 /// Information about line beginnings in the file
 pub struct BolInfo {
+  /// Number of lines that have no whitespace at the beginning
+  pub none: usize,
   /// Number of all space line beginnings
   pub spaces: usize,
   /// Number of all tab line beginnings
@@ -75,12 +77,14 @@ impl BolInfo {
 /// Read beginning of line information
 pub fn read_bol_info(reader: &mut dyn Read) -> Result<BolInfo, Box<dyn Error>> {
   let mut bol_info = BolInfo {
+    none: 0,
     spaces: 0,
     tabs: 0,
     mixed: 0,
   };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
   let mut at_bol = true;
+  let (mut num_spaces, mut num_tabs) = (0, 0);
 
   loop {
     let c;
@@ -91,13 +95,24 @@ pub fn read_bol_info(reader: &mut dyn Read) -> Result<BolInfo, Box<dyn Error>> {
 
     if at_bol {
       if c == ' ' {
-        bol_info.spaces += 1;
+        num_spaces += 1;
       } else if c == '\t' {
-        bol_info.tabs += 1;
+        num_tabs += 1;
       } else {
+        if num_spaces == 0 && num_tabs == 0 {
+          bol_info.none += 1;
+        } else if num_spaces > 0 && num_tabs > 0 {
+          bol_info.mixed += 1;
+        } else if num_spaces > 0 {
+          bol_info.spaces += 1;
+        } else {
+          bol_info.tabs += 1;
+        }
         at_bol = false;
       }
     } else if c == '\n' {
+      num_spaces = 0;
+      num_tabs = 0;
       at_bol = true;
     }
   }
@@ -117,6 +132,7 @@ pub fn write_new_bols(
   let old_tab_size = std::cmp::max(1, old_tab_size);
   let new_tab_size = std::cmp::max(1, new_tab_size);
   let mut bol_info = BolInfo {
+    none: 0,
     spaces: 0,
     tabs: 0,
     mixed: 0,
@@ -216,14 +232,15 @@ mod tests {
 
   #[test]
   fn test_read_bol_info() {
-    let bol_info = read_bol_info(&mut "  \txyz\n".as_bytes()).unwrap();
+    let bol_info = read_bol_info(&mut "a\n\tb\n  c\n \td\n".as_bytes()).unwrap();
 
     assert_eq!(
       bol_info,
       BolInfo {
-        spaces: 2,
+        none: 1,
+        spaces: 1,
         tabs: 1,
-        mixed: 0
+        mixed: 1,
       }
     );
   }
@@ -238,6 +255,7 @@ mod tests {
     assert_eq!(
       bol_info,
       BolInfo {
+        none: 0,
         spaces: 0,
         tabs: 3,
         mixed: 0
@@ -256,6 +274,7 @@ mod tests {
     assert_eq!(
       bol_info,
       BolInfo {
+        none: 0,
         spaces: 2,
         tabs: 3,
         mixed: 0
@@ -274,6 +293,7 @@ mod tests {
     assert_eq!(
       bol_info,
       BolInfo {
+        none: 0,
         spaces: 9,
         tabs: 0,
         mixed: 0
