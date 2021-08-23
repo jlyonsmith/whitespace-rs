@@ -1,5 +1,6 @@
 # Whitespace Tools (Rust Edition)
 
+[![coverage](https://shields.io/endpoint?url=https://raw.githubusercontent.com/jlyonsmith/whitespace-rs/main/coverage.json)](https://github.com/jlyonsmith/whitespace-rs/blob/main/coverage.json)
 [![Crates.io](https://img.shields.io/crates/v/whitespace-rs.svg)](https://crates.io/crates/whitespace-rs)
 [![Docs.rs](https://docs.rs/whitespace-rs/badge.svg)](https://docs.rs/whitespace-rs)
 
