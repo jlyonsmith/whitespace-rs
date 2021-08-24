@@ -76,7 +76,7 @@ fn run(
     print!(
         "'{}', {}, {} lines",
         input_file,
-        if eol_info.num_endings > 1 {
+        if eol_info.num_endings() > 1 {
             "mixed"
         } else if eol_info.cr > 0 {
             "cr"

@@ -54,18 +54,21 @@ pub enum EndOfLine {
 /// File line information.
 #[derive(Debug, PartialEq)]
 pub struct EolInfo {
+  /// Number of lines that end in carriage return
   pub cr: usize,
+  /// Number of lines that end in line feeds
   pub lf: usize,
+  /// Number of lines that end in carriage return/line feed
   pub crlf: usize,
+  /// Total number of lines in the file (includes lines with no ending)
   pub num_lines: usize,
-  pub num_endings: usize,
 }
 
 impl Eq for EolInfo {}
 
 impl EolInfo {
   /// Get the most common end-of-line based on the info.
-  pub fn get_common_eol(self: Self) -> EndOfLine {
+  pub fn get_common_eol(self: &Self) -> EndOfLine {
     let mut n = self.lf;
     let mut eol = EndOfLine::Lf;
 
@@ -80,6 +83,10 @@ impl EolInfo {
 
     eol
   }
+
+  pub fn num_endings(self: &Self) -> usize {
+    (self.cr > 0) as usize + (self.lf > 0) as usize + (self.crlf > 0) as usize
+  }
 }
 
 /// Read end-of-line information for a file.
@@ -88,7 +95,6 @@ pub fn read_eol_info(reader: &mut dyn Read) -> Result<EolInfo, Box<dyn Error>> {
     cr: 0,
     lf: 0,
     crlf: 0,
-    num_endings: 0,
     num_lines: 1,
   };
   let mut decoder = UnsafeDecoder::new(reader.bytes()).peekable();
@@ -113,9 +119,6 @@ pub fn read_eol_info(reader: &mut dyn Read) -> Result<EolInfo, Box<dyn Error>> {
       eol_info.num_lines += 1;
     }
   }
-
-  eol_info.num_endings =
-    (eol_info.cr > 0) as usize + (eol_info.lf > 0) as usize + (eol_info.crlf > 0) as usize;
 
   Ok(eol_info)
 }
@@ -176,7 +179,6 @@ mod tests {
         lf: 1,
         crlf: 0,
         num_lines: 2,
-        num_endings: 1
       }
     );
   }
@@ -192,7 +194,6 @@ mod tests {
         lf: 0,
         crlf: 0,
         num_lines: 2,
-        num_endings: 1
       }
     );
   }
@@ -208,7 +209,6 @@ mod tests {
         lf: 0,
         crlf: 1,
         num_lines: 2,
-        num_endings: 1
       }
     );
   }
@@ -224,7 +224,6 @@ mod tests {
         lf: 1,
         crlf: 1,
         num_lines: 4,
-        num_endings: 3
       }
     );
   }

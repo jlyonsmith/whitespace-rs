@@ -66,7 +66,7 @@ impl Eq for BolInfo {}
 
 impl BolInfo {
   /// Get the most common beginning of line type in the file
-  pub fn get_common_bol(self: Self, tab_size: usize, round_down: bool) -> BeginningOfLine {
+  pub fn get_common_bol(self: &Self, tab_size: usize, round_down: bool) -> BeginningOfLine {
     if self.tabs > self.spaces {
       BeginningOfLine::Tabs(tab_size, round_down)
     } else {

@@ -195,7 +195,7 @@ mod tests {
         let input_path = temp_dir.path().join("input_file.txt");
         let input_file = input_path.to_str().unwrap();
 
-        std::fs::write(input_file, "\t\t abc\r").unwrap();
+        std::fs::write(input_file, "\t\n\t\n\t\t abc\r").unwrap();
 
         run(
             input_file,
