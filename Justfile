@@ -12,5 +12,5 @@ coverage OPEN='':
 doc:
   cargo doc --open
 
-release:
-
+release OPERATION='incrPatch':
+  deno run --unstable --allow-run --allow-read https://raw.githubusercontent.com/jlyonsmith/deno-scripts/main/rust-release.ts {{OPERATION}}
