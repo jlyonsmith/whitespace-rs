@@ -20,7 +20,7 @@ arg_enum! {
 
 fn main() {
     let matches = App::new("Ender")
-        .version("2.1.1+20210824.0")
+        .version("2.1.2+20210904.0")
         .author("John Lyon-Smith")
         .about("End of line normalizer.  Defaults to reporting types of endings.")
         .arg(

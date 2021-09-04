@@ -19,7 +19,7 @@ arg_enum! {
 
 fn main() {
     let matches = App::new("Spacer")
-        .version("2.1.1+20210824.0")
+        .version("2.1.2+20210904.0")
         .author("John Lyon-Smith")
         .about(
             "Beginning of line normalizer. Defaults to reporting types count of spaces, tab and mixed beginnings.",
