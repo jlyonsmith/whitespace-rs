@@ -75,6 +75,7 @@ fn main() {
 
     if let Err(ref err) = result {
         eprintln!("error: {}", err);
+        std::process::exit(-1);
     }
 }
 // {grcov-excl-end}
