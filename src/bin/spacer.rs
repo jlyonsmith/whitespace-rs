@@ -17,7 +17,7 @@ arg_enum! {
   }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let matches = App::new("Spacer")
         .version("2.1.1+20210824.0")
         .author("John Lyon-Smith")
@@ -69,15 +69,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         matches.value_of("input_file").unwrap(),
         matches.value_of("output_file"),
         value_t!(matches, "bol_arg", BeginningOfLineArg).ok(),
-        usize::from_str_radix(matches.value_of("tab_size").unwrap(), 10)?,
+        usize::from_str_radix(matches.value_of("tab_size").unwrap(), 10).unwrap_or(4),
         matches.is_present("round_down"),
     );
 
     if let Err(ref err) = result {
         eprintln!("error: {}", err);
     }
-
-    result
 }
 // {grcov-excl-end}
 

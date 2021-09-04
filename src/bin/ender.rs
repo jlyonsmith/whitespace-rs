@@ -18,7 +18,7 @@ arg_enum! {
   }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let matches = App::new("Ender")
         .version("2.1.1+20210824.0")
         .author("John Lyon-Smith")
@@ -60,8 +60,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Err(ref err) = result {
         eprintln!("error: {}", err);
     }
-
-    result
 }
 // {grcov-excl-end}
 
