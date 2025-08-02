@@ -7,13 +7,13 @@
     revision: 0,
   },
   calcVars: {
-    nextBuild: "now::year * 10000 + now::month * 100 + now::day",
+    nextBuild: "build + 1",
   },
   operations: {
     incrMajor: "major += 1; minor = 0; patch = 0; revision = 0; build = nextBuild",
     incrMinor: "minor += 1; patch = 0; revision = 0; build = nextBuild",
     incrPatch: "patch += 1; revision = 0; build = nextBuild",
-    incrRevision: "revision += 1; build = nextBuild",
+    incrBuild: "build = nextBuild",
   },
   targets: [
     {
