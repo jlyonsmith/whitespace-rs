@@ -1,4 +1,4 @@
-use clap::{arg_enum, value_t, App, Arg};
+use clap::{Arg, ArgAction, Command, ValueEnum};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -7,70 +7,67 @@ use std::path::Path;
 use whitespace_rs::spacer::*;
 
 // {grcov-excl-start}
-arg_enum! {
-  #[derive(PartialEq, Debug, Clone, Copy)]
-  /// Types of line beginnings
-  pub enum BeginningOfLineArg {
-      Tabs,
-      Spaces,
-      Auto,
-  }
+#[derive(PartialEq, Debug, Clone, ValueEnum)]
+/// Types of line beginnings
+pub enum BeginningOfLineArg {
+    Tabs,
+    Spaces,
+    Auto,
 }
 
 fn main() {
-    let matches = App::new("Spacer")
+    let matches = Command::new("Spacer")
         .version("2.1.2+20210904.0")
         .author("John Lyon-Smith")
         .about(
-            "Beginning of line normalizer. Defaults to reporting types count of spaces, tab and mixed beginnings.",
+            "Beginning of line normalizer. Defaults to reporting BOL type for the file; tabs, spaces, or mixed.",
         )
         .arg(
-            Arg::with_name("input_file")
+            Arg::new("input_file")
                 .help("Input file in UTF-8 format.")
                 .value_name("FILE")
                 .index(1)
                 .required(true),
         )
         .arg(
-            Arg::with_name("output_file")
+            Arg::new("output_file")
                 .help("Output file in UTF-8 format.  Uses STDOUT if not specified")
                 .long("output")
-                .short("o")
-                .takes_value(true)
+                .short('o')
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("bol_arg")
+            Arg::new("bol_arg")
                 .help("Standardize line beginnings")
                 .long("new-bol")
-                .short("n")
-                .takes_value(true)
-                .possible_values(&BeginningOfLineArg::variants())
-                .case_insensitive(true),
+                .short('n')
+                .value_parser(clap::builder::EnumValueParser::<BeginningOfLineArg>::new())
         )
         .arg(
-            Arg::with_name("tab_size")
+            Arg::new("tab_size")
                 .help("Tab size for both input and output file")
                 .long("tab-size")
-                .short("t")
-                .takes_value(true)
+                .short('t')
                 .value_name("TAB_SIZE")
                 .default_value("4"),
         )
         .arg(
-            Arg::with_name("round_down")
+            Arg::new("round_down")
                 .help("When tabifying, rounds extra spaces down to a whole number of tabs")
                 .long("round-down")
-                .short("r"),
+                .short('r')
+                .action(ArgAction::SetTrue)
         )
         .get_matches();
 
     let result = run(
-        matches.value_of("input_file").unwrap(),
-        matches.value_of("output_file"),
-        value_t!(matches, "bol_arg", BeginningOfLineArg).ok(),
-        usize::from_str_radix(matches.value_of("tab_size").unwrap(), 10).unwrap_or(4),
-        matches.is_present("round_down"),
+        matches.get_one::<String>("input_file").unwrap(),
+        matches
+            .get_one::<String>("output_file")
+            .map(|s_ref| s_ref.as_str()),
+        matches.get_one::<BeginningOfLineArg>("bol_arg"),
+        usize::from_str_radix(matches.get_one::<String>("tab_size").unwrap(), 10).unwrap_or(4),
+        matches.get_flag("round_down"),
     );
 
     if let Err(ref err) = result {
@@ -83,7 +80,7 @@ fn main() {
 pub fn run(
     input_file: &str,
     output_file: Option<&str>,
-    bol_arg: Option<BeginningOfLineArg>,
+    bol_arg: Option<&BeginningOfLineArg>,
     tab_size: usize,
     round_down: bool,
 ) -> Result<(), Box<dyn Error>> {
@@ -100,12 +97,7 @@ pub fn run(
             "spaces"
         }
     };
-
-    print!(
-        "'{}', {}",
-        input_file,
-        bol_type(bol_info.spaces, bol_info.tabs),
-    );
+    let mut new_bol_info: Option<BolInfo> = None;
 
     if let Some(bol_arg) = bol_arg {
         let new_bol = match bol_arg {
@@ -120,17 +112,28 @@ pub fn run(
             Some(path) => Box::new(BufWriter::new(File::create(Path::new(path))?)),
             None => Box::new(std::io::stdout()),
         };
-        let bol_info = write_new_bols(&mut reader, &mut writer, new_bol)?;
+        new_bol_info = Some(write_new_bols(&mut reader, &mut writer, new_bol)?);
+        println!();
+    }
 
-        println!(
+    eprint!(
+        "'{}', {}",
+        input_file,
+        bol_type(bol_info.spaces, bol_info.tabs),
+    );
+
+    if let Some(new_bol_info) = new_bol_info {
+        eprintln!(
             " -> '{}', {}",
             if let Some(file) = output_file {
                 file
             } else {
                 "STDOUT"
             },
-            bol_type(bol_info.spaces, bol_info.tabs)
+            bol_type(new_bol_info.spaces, new_bol_info.tabs)
         )
+    } else {
+        eprintln!();
     }
 
     Ok(())
@@ -148,7 +151,7 @@ mod tests {
 
         std::fs::write(input_file, "\t\tabc\r").unwrap();
 
-        run(input_file, None, Some(BeginningOfLineArg::Spaces), 4, true).unwrap();
+        run(input_file, None, Some(&BeginningOfLineArg::Spaces), 4, true).unwrap();
 
         temp_dir.close().unwrap();
     }
@@ -178,7 +181,7 @@ mod tests {
         run(
             input_file,
             Some(output_path.to_str().unwrap()),
-            Some(BeginningOfLineArg::Auto),
+            Some(&BeginningOfLineArg::Auto),
             2,
             true,
         )
@@ -199,7 +202,7 @@ mod tests {
         run(
             input_file,
             Some(output_path.to_str().unwrap()),
-            Some(BeginningOfLineArg::Auto),
+            Some(&BeginningOfLineArg::Auto),
             2,
             true,
         )

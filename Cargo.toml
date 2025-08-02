@@ -16,13 +16,14 @@ license = "Unlicense"
 [features]
 default = ["cli"]
 cli = ["clap"]
+clap = ["dep:clap"]
 
 [dependencies]
-clap = { version = "^2.33.3", optional = true }
+clap = { version = "^4.5.42", optional = true, features = ["derive"] }
 utf8-decode = "^1.0"
 
 [dev-dependencies]
-tempfile = "^3.2"
+tempfile = "^3.20"
 
 [lib]
 name = "whitespace_rs"
