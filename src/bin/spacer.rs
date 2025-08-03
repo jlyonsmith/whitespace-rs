@@ -17,7 +17,7 @@ pub enum BeginningOfLineArg {
 
 fn main() {
     let matches = Command::new("Spacer")
-        .version("2.1.2+20210904.0")
+        .version("3.0.0+20210905.0")
         .author("John Lyon-Smith")
         .about(
             "Beginning of line normalizer. Defaults to reporting BOL type for the file; tabs, spaces, or mixed.",

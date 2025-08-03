@@ -29,7 +29,7 @@ impl std::fmt::Display for EndOfLineArg {
 
 fn main() {
     let matches = Command::new("Ender")
-        .version("2.1.2+20210904.0")
+        .version("3.0.0+20210905.0")
         .author("John Lyon-Smith")
         .about("End of line normalizer.  Defaults to reporting types of endings.")
         .arg(
